@@ -1,0 +1,102 @@
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+
+export async function tandaiDitinjau(memberId: string) {
+  const supabase = await createClient();
+  await supabase.from("profiles").update({ verifikasi_status: "ditinjau" }).eq("id", memberId);
+  revalidatePath("/admin");
+  revalidatePath("/admin/verifikasi");
+}
+
+export async function tolakVerifikasi(memberId: string) {
+  const supabase = await createClient();
+  await supabase.from("profiles").update({ verifikasi_status: "belum_verifikasi" }).eq("id", memberId);
+  revalidatePath("/admin");
+  revalidatePath("/admin/verifikasi");
+}
+
+export async function setujuiVerifikasi(formData: FormData) {
+  const memberId = formData.get("memberId") as string;
+  const limit = Number(formData.get("limit"));
+  const tempo = Number(formData.get("tempo"));
+
+  const supabase = await createClient();
+  await supabase
+    .from("profiles")
+    .update({ verifikasi_status: "selesai", limit_khusus: limit, tempo_khusus_hari: tempo })
+    .eq("id", memberId);
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/verifikasi");
+  revalidatePath("/admin/anggota");
+}
+
+// ===== Tarif Pinjaman =====
+
+function bulatkanKe50Ribu(n: number) {
+  if (!n || isNaN(n)) return 0;
+  return Math.round(n / 50000) * 50000;
+}
+
+export async function tambahTarif(formData: FormData) {
+  const nominal_pinjam = bulatkanKe50Ribu(Number(formData.get("nominal_pinjam")));
+  const nominal_kembali = Number(formData.get("nominal_kembali"));
+
+  const supabase = await createClient();
+  await supabase.from("loan_tiers").insert({ nominal_pinjam, nominal_kembali });
+
+  revalidatePath("/admin/tarif");
+  revalidatePath("/admin/anggota");
+  revalidatePath("/admin/verifikasi");
+}
+
+export async function hapusTarif(tierId: string) {
+  const supabase = await createClient();
+  await supabase.from("loan_tiers").delete().eq("id", tierId);
+  revalidatePath("/admin/tarif");
+  revalidatePath("/admin/anggota");
+  revalidatePath("/admin/verifikasi");
+}
+
+// ===== Pengaturan =====
+
+export async function updateAdminWhatsapp(formData: FormData) {
+  const admin_whatsapp = formData.get("admin_whatsapp") as string;
+
+  const supabase = await createClient();
+  await supabase.from("loan_settings").update({ admin_whatsapp }).eq("id", 1);
+
+  revalidatePath("/admin/pengaturan");
+}
+
+export async function updateRekeningPembayaran(formData: FormData) {
+  const rekening_bank = formData.get("rekening_bank") as string;
+  const rekening_nomor = formData.get("rekening_nomor") as string;
+  const rekening_atas_nama = formData.get("rekening_atas_nama") as string;
+
+  const supabase = await createClient();
+  await supabase
+    .from("loan_settings")
+    .update({ rekening_bank, rekening_nomor, rekening_atas_nama })
+    .eq("id", 1);
+
+  revalidatePath("/admin/pengaturan");
+}
+
+export async function updateProfilAdmin(formData: FormData) {
+  const nama = formData.get("nama") as string;
+  const no_telpon = formData.get("no_telpon") as string;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
+  await supabase.from("profiles").update({ nama, no_telpon }).eq("id", user.id);
+
+  revalidatePath("/admin/pengaturan");
+}
