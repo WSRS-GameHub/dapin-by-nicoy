@@ -8,18 +8,14 @@ import Toast from "@/components/ui/Toast";
 
 type Props = {
   userId: string;
-  idAnggota: string;
   initial: {
     nama: string;
     no_telpon: string;
     admin_whatsapp: string;
-    rekening_bank: string;
-    rekening_nomor: string;
-    rekening_atas_nama: string;
   };
 };
 
-export default function ProfilPengaturan({ userId, idAnggota, initial }: Props) {
+export default function ProfilPengaturan({ userId, initial }: Props) {
   const router = useRouter();
   const supabase = createClient();
   const [editing, setEditing] = useState(false);
@@ -47,12 +43,7 @@ export default function ProfilPengaturan({ userId, idAnggota, initial }: Props) 
         .eq("id", userId),
       supabase
         .from("loan_settings")
-        .update({
-          admin_whatsapp: form.admin_whatsapp,
-          rekening_bank: form.rekening_bank,
-          rekening_nomor: form.rekening_nomor,
-          rekening_atas_nama: form.rekening_atas_nama,
-        })
+        .update({ admin_whatsapp: form.admin_whatsapp })
         .eq("id", 1),
     ]);
 
@@ -72,7 +63,6 @@ export default function ProfilPengaturan({ userId, idAnggota, initial }: Props) 
     <div className="flex flex-col gap-5">
       {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
 
-      {/* Header profil */}
       <div className="bg-white rounded-2xl shadow-sm p-5 flex items-center gap-4">
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue to-navy text-white flex items-center justify-center font-display font-bold text-xl flex-shrink-0">
           {form.nama?.slice(0, 2).toUpperCase() || "AD"}
@@ -88,9 +78,6 @@ export default function ProfilPengaturan({ userId, idAnggota, initial }: Props) 
             <p className="font-display font-bold text-lg text-navy truncate">{form.nama || "-"}</p>
           )}
           <p className="text-xs text-slate mt-0.5">Admin Dapin</p>
-          <span className="inline-block text-[10px] font-mono font-semibold text-blue bg-sky px-2 py-0.5 rounded mt-1.5">
-            {idAnggota}
-          </span>
         </div>
         {!editing && (
           <button
@@ -102,7 +89,6 @@ export default function ProfilPengaturan({ userId, idAnggota, initial }: Props) 
         )}
       </div>
 
-      {/* Grup: Kontak */}
       <SettingGroup title="Kontak">
         <SettingRow
           label="No. WhatsApp Pribadi"
@@ -120,33 +106,8 @@ export default function ProfilPengaturan({ userId, idAnggota, initial }: Props) 
         />
       </SettingGroup>
 
-      {/* Grup: Rekening */}
-      <SettingGroup title="Rekening Pembayaran">
-        <SettingRow
-          label="Nama Bank"
-          value={form.rekening_bank}
-          editing={editing}
-          onChange={(v) => update("rekening_bank", v)}
-          placeholder="Contoh: BRI, BCA"
-        />
-        <SettingRow
-          label="Nomor Rekening"
-          value={form.rekening_nomor}
-          editing={editing}
-          onChange={(v) => update("rekening_nomor", v)}
-          placeholder="Nomor rekening aktif"
-        />
-        <SettingRow
-          label="Atas Nama"
-          value={form.rekening_atas_nama}
-          editing={editing}
-          onChange={(v) => update("rekening_atas_nama", v)}
-          placeholder="Sesuai buku tabungan"
-        />
-      </SettingGroup>
-
       {editing && (
-        <div className="flex gap-2.5 sticky bottom-4">
+        <div className="flex gap-2.5">
           <button
             onClick={handleBatal}
             disabled={saving}

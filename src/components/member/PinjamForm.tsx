@@ -3,43 +3,50 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { ArrowLeft, Send, Check } from "lucide-react";
+import { ArrowLeft, Send, Check, AlertTriangle } from "lucide-react";
 import Toast from "@/components/ui/Toast";
 
 type Tier = { id: string; nominal_pinjam: number; nominal_kembali: number };
 
+type Rekening = {
+  nama_bank: string;
+  no_rekening: string;
+  nama_pemilik_rekening: string;
+};
+
 type Props = {
   userId: string;
-  nama: string;
-  idAnggota: string;
   tempoHari: number;
-  adminWhatsapp: string;
   tiers: Tier[];
   sudahAdaPengajuan: boolean;
+  rekening: Rekening;
 };
 
 export default function PinjamForm({
-  userId, nama, idAnggota, tempoHari, adminWhatsapp, tiers, sudahAdaPengajuan,
+  userId, tempoHari, tiers, sudahAdaPengajuan, rekening,
 }: Props) {
   const router = useRouter();
   const supabase = createClient();
   const [selected, setSelected] = useState<Tier | null>(null);
-  const [keperluan, setKeperluan] = useState("");
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   const formatRupiah = (n: number) => "Rp " + n.toLocaleString("id-ID");
+  const formatTanggalJam = (d: Date) =>
+    d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) +
+    ", " +
+    d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) +
+    " WIB";
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  const now = new Date();
+  const perkiraanJatuhTempo = new Date(now);
+  perkiraanJatuhTempo.setDate(perkiraanJatuhTempo.getDate() + tempoHari);
+
+  async function handleSubmit() {
     setToast(null);
 
     if (!selected) {
       setToast({ type: "error", message: "Pilih nominal pinjaman dulu." });
-      return;
-    }
-    if (!keperluan.trim()) {
-      setToast({ type: "error", message: "Isi keperluan pinjaman terlebih dahulu." });
       return;
     }
 
@@ -49,7 +56,6 @@ export default function PinjamForm({
       member_id: userId,
       nominal: selected.nominal_pinjam,
       jumlah_kembali: selected.nominal_kembali,
-      keperluan,
       status: "menunggu",
       tempo_hari: tempoHari,
     });
@@ -61,23 +67,11 @@ export default function PinjamForm({
       return;
     }
 
-    const pesan = `Halo Admin Dapin, saya mau ajukan pinjaman.
-
-Nama: ${nama}
-ID Anggota: ${idAnggota}
-Nominal Pinjam: ${formatRupiah(selected.nominal_pinjam)}
-Jumlah Dikembalikan: ${formatRupiah(selected.nominal_kembali)}
-Keperluan: ${keperluan}
-Tempo: ${tempoHari} hari
-
-Mohon diproses ya, terima kasih.`;
-
-    const waUrl = `https://wa.me/${adminWhatsapp}?text=${encodeURIComponent(pesan)}`;
-
-    setToast({ type: "success", message: "Pengajuan tersimpan! Mengalihkan ke WhatsApp..." });
+    setToast({ type: "success", message: "Pengajuan terkirim! Menunggu persetujuan admin." });
     setTimeout(() => {
-      window.location.href = waUrl;
-    }, 900);
+      router.push("/riwayat");
+      router.refresh();
+    }, 1200);
   }
 
   if (sudahAdaPengajuan) {
@@ -121,59 +115,64 @@ Mohon diproses ya, terima kasih.`;
 
       <h1 className="font-display font-bold text-xl text-navy">Ajukan Pinjaman</h1>
       <p className="text-sm text-slate mt-1 mb-5">
-        Pilih nominal sesuai kebutuhan, tempo {tempoHari} hari.
+        Pilih nominal sesuai kebutuhan, tempo {tempoHari} hari. Admin akan meninjau pengajuanmu.
       </p>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        <div className="flex flex-col gap-2.5">
-          {tiers.map((t) => {
-            const active = selected?.id === t.id;
-            return (
-              <button
-                type="button"
-                key={t.id}
-                onClick={() => setSelected(t)}
-                className={`flex items-center justify-between rounded-2xl px-4 py-3.5 border-2 text-left ${
-                  active ? "border-blue bg-blue/5" : "border-sky-line bg-white"
-                }`}
-              >
-                <div>
-                  <p className="text-sm font-bold text-navy font-mono">{formatRupiah(t.nominal_pinjam)}</p>
-                  <p className="text-[11px] text-slate mt-0.5">
-                    Kembali <b className="text-teal">{formatRupiah(t.nominal_kembali)}</b>
-                  </p>
+      <div className="grid grid-cols-2 gap-2.5 mb-5">
+        {tiers.map((t) => {
+          const active = selected?.id === t.id;
+          return (
+            <button
+              type="button"
+              key={t.id}
+              onClick={() => setSelected(t)}
+              className={`relative rounded-2xl px-3.5 py-3 border-2 text-left ${
+                active ? "border-blue bg-blue/5" : "border-sky-line bg-white"
+              }`}
+            >
+              {active && (
+                <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-blue flex items-center justify-center">
+                  <Check size={11} className="text-white" />
                 </div>
-                {active && (
-                  <div className="w-6 h-6 rounded-full bg-blue flex items-center justify-center flex-shrink-0">
-                    <Check size={13} className="text-white" />
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
+              )}
+              <p className="text-sm font-bold text-navy font-mono">{formatRupiah(t.nominal_pinjam)}</p>
+              <p className="text-[10.5px] text-slate mt-1">
+                Kembali <b className="text-teal">{formatRupiah(t.nominal_kembali)}</b>
+              </p>
+            </button>
+          );
+        })}
+      </div>
 
-        <div>
-          <label className="text-xs font-semibold text-slate block mb-1.5">Keperluan</label>
-          <textarea
-            required
-            value={keperluan}
-            onChange={(e) => setKeperluan(e.target.value)}
-            placeholder="Contoh: kebutuhan mendesak, modal jualan, dll"
-            rows={3}
-            className="w-full border border-sky-line bg-white rounded-xl px-4 py-3 outline-none text-sm text-navy placeholder:text-slate/60 resize-none"
-          />
+      {selected && (
+        <div className="bg-sky rounded-xl px-4 py-3.5 mb-6 flex flex-col gap-3">
+          <div className="flex gap-2.5">
+            <AlertTriangle size={15} className="text-amber flex-shrink-0 mt-0.5" />
+            <div className="text-[11.5px] text-slate leading-relaxed">
+              Harap cek rekening tujuan pencairan dengan benar sebelum mengajukan:
+              <br />
+              <b className="text-navy">
+                {rekening.nama_bank || "Bank belum diisi"} · {rekening.no_rekening || "-"}
+              </b>
+              <br />
+              a.n {rekening.nama_pemilik_rekening || "-"}
+            </div>
+          </div>
+          <div className="border-t border-sky-line pt-3 text-[11.5px] text-slate">
+            Jatuh tempo pada tanggal <b className="text-navy">{formatTanggalJam(perkiraanJatuhTempo)}</b>
+          </div>
         </div>
+      )}
 
-        <button
-          type="submit"
-          disabled={loading || !selected}
-          className="flex items-center justify-center gap-2 bg-blue text-white font-semibold text-sm rounded-xl py-3.5 disabled:opacity-60"
-        >
-          <Send size={16} />
-          {loading ? "Menyimpan..." : "Ajukan & Lanjut ke WhatsApp"}
-        </button>
-      </form>
+      <button
+        type="button"
+        onClick={handleSubmit}
+        disabled={loading || !selected}
+        className="flex items-center justify-center gap-2 bg-blue text-white font-semibold text-sm rounded-xl py-3.5 disabled:opacity-60"
+      >
+        <Send size={16} />
+        {loading ? "Mengirim..." : "Ajukan Pinjaman"}
+      </button>
     </div>
   );
 }

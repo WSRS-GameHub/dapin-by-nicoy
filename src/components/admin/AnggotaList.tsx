@@ -8,7 +8,6 @@ import Toast from "@/components/ui/Toast";
 type Member = {
   id: string;
   nama: string;
-  id_anggota: string;
   limit_khusus: number | null;
   tempo_khusus_hari: number | null;
 };
@@ -98,10 +97,7 @@ function MemberCard({
         <div className="w-10 h-10 rounded-xl bg-sky text-blue flex items-center justify-center flex-shrink-0 text-xs font-bold font-mono">
           {member.nama?.slice(0, 2).toUpperCase()}
         </div>
-        <div className="min-w-0">
-          <p className="text-[13.5px] font-bold text-navy truncate">{member.nama}</p>
-          <p className="text-[11px] text-slate">{member.id_anggota}</p>
-        </div>
+        <p className="text-[13.5px] font-bold text-navy truncate">{member.nama}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-2.5">

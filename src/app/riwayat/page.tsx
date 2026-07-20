@@ -1,0 +1,166 @@
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Home, History, Plus, User, Clock, CheckCircle2, XCircle, Wallet } from "lucide-react";
+import BankLogo from "@/components/ui/BankLogo";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export default async function RiwayatPage() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("verifikasi_status")
+    .eq("id", user.id)
+    .single();
+
+  const { data: loans } = await supabase
+    .from("loans")
+    .select("*")
+    .eq("member_id", user.id)
+    .order("created_at", { ascending: false });
+
+  const adaPinjamanAktif = loans?.some((l) => l.status === "disetujui");
+
+  const { data: rekeningList } = adaPinjamanAktif
+    ? await supabase.from("rekening_admin").select("*").order("created_at", { ascending: true })
+    : { data: null };
+
+  const sudahTerverifikasi = profile?.verifikasi_status === "selesai";
+  const ajukanHref = sudahTerverifikasi ? "/pinjam" : "/ajukan";
+  const ajukanLabel = sudahTerverifikasi ? "Pinjam" : "Verifikasi";
+
+  const formatRupiah = (n: number) => "Rp " + (n ?? 0).toLocaleString("id-ID");
+  const formatTanggalJam = (d: string) =>
+    new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) +
+    ", " +
+    new Date(d).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) +
+    " WIB";
+
+  function hitungJatuhTempo(tanggalCair: string, tempoHari: number) {
+    const cair = new Date(tanggalCair);
+    const jatuhTempo = new Date(cair);
+    jatuhTempo.setDate(jatuhTempo.getDate() + tempoHari);
+    return jatuhTempo;
+  }
+
+  const statusCfg: Record<string, { label: string; icon: typeof Clock; className: string }> = {
+    menunggu: { label: "Menunggu", icon: Clock, className: "bg-amber/15 text-amber" },
+    disetujui: { label: "Disetujui", icon: Wallet, className: "bg-blue/15 text-blue" },
+    lunas: { label: "Lunas", icon: CheckCircle2, className: "bg-teal/15 text-teal" },
+    ditolak: { label: "Ditolak", icon: XCircle, className: "bg-red-100 text-red-500" },
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col max-w-md mx-auto bg-[#F3F6FE]">
+      <div className="px-5 pt-6 pb-4">
+        <h1 className="font-display font-bold text-lg text-navy">Riwayat Pinjaman</h1>
+        <p className="text-sm text-slate mt-1">Semua pengajuan pinjaman kamu.</p>
+      </div>
+
+      {adaPinjamanAktif && rekeningList && rekeningList.length > 0 && (
+        <div className="px-5 mb-5">
+          <p className="text-xs font-bold text-slate uppercase tracking-wide mb-2 px-1">
+            Bayar ke Salah Satu Rekening
+          </p>
+          <div className="flex flex-col gap-2">
+            {rekeningList.map((r) => (
+              <div key={r.id} className="bg-white rounded-2xl shadow-sm p-3.5 flex items-center gap-3">
+                <BankLogo namaBank={r.nama_bank} size={40} />
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-navy">{r.nama_bank}</p>
+                  <p className="text-xs text-slate font-mono mt-0.5">{r.no_rekening}</p>
+                  <p className="text-[11px] text-slate">a.n {r.nama_pemilik}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="px-5 flex-1 flex flex-col gap-2.5">
+        {loans && loans.length > 0 ? (
+          loans.map((loan) => {
+            const cfg = statusCfg[loan.status] ?? statusCfg.menunggu;
+            const Icon = cfg.icon;
+            const jatuhTempo =
+              loan.tanggal_cair && loan.tempo_hari
+                ? hitungJatuhTempo(loan.tanggal_cair, loan.tempo_hari)
+                : null;
+
+            return (
+              <div key={loan.id} className="bg-white rounded-2xl p-4 shadow-sm">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-navy font-mono">{formatRupiah(loan.nominal)}</p>
+                    {loan.jumlah_kembali && (
+                      <p className="text-[11px] text-slate mt-0.5">
+                        Kembali <b className="text-teal">{formatRupiah(loan.jumlah_kembali)}</b>
+                      </p>
+                    )}
+                  </div>
+                  <span className={`flex items-center gap-1 text-[10.5px] font-bold px-2.5 py-1 rounded-lg flex-shrink-0 ${cfg.className}`}>
+                    <Icon size={11} /> {cfg.label}
+                  </span>
+                </div>
+
+                {loan.tanggal_cair ? (
+                  <div className="mt-3 pt-3 border-t border-sky-line flex flex-col gap-1 text-[11px] text-slate">
+                    <div className="flex justify-between">
+                      <span>Mulai</span>
+                      <b className="text-navy">{formatTanggalJam(loan.tanggal_cair)}</b>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Jatuh tempo</span>
+                      <b className={loan.status === "disetujui" ? "text-amber" : "text-navy"}>
+                        {jatuhTempo ? formatTanggalJam(jatuhTempo.toISOString()) : "-"}
+                      </b>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-between mt-3 pt-3 border-t border-sky-line text-[11px] text-slate">
+                    <span>Diajukan {formatTanggalJam(loan.created_at)}</span>
+                    <span>Tempo {loan.tempo_hari ?? "-"} hari</span>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-sm text-slate text-center py-14">
+              Belum ada riwayat pinjaman.
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-auto sticky bottom-0 bg-white border-t border-sky-line flex justify-around items-center py-3 pb-6">
+        <Link href="/dashboard" className="flex flex-col items-center gap-1 w-[70px] text-slate">
+          <Home size={21} />
+          <span className="text-[10.5px] font-semibold">Beranda</span>
+        </Link>
+        <div className="flex flex-col items-center gap-1 w-[70px] text-blue">
+          <History size={21} />
+          <span className="text-[10.5px] font-semibold">Riwayat</span>
+        </div>
+        <Link href={ajukanHref} className="flex flex-col items-center gap-1 w-[70px] text-slate">
+          <Plus size={21} />
+          <span className="text-[10.5px] font-semibold">{ajukanLabel}</span>
+        </Link>
+        <Link href="/profil" className="flex flex-col items-center gap-1 w-[70px] text-slate">
+          <User size={21} />
+          <span className="text-[10.5px] font-semibold">Profil</span>
+        </Link>
+      </div>
+    </div>
+  );
+}

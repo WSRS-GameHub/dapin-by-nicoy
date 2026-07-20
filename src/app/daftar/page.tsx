@@ -40,17 +40,17 @@ export default function DaftarPage() {
     }
 
     if (data.session) {
-      setToast({ type: "success", message: "Pendaftaran berhasil! Mengalihkan..." });
-      setTimeout(() => {
-        router.push("/");
-        router.refresh();
-      }, 800);
-    } else {
-      setToast({
-        type: "success",
-        message: "Pendaftaran berhasil. Cek email untuk konfirmasi sebelum masuk.",
-      });
-    }
+  setToast({ type: "success", message: "Pendaftaran berhasil! Mengalihkan..." });
+  setTimeout(() => {
+    router.push("/dashboard");
+    router.refresh();
+  }, 800);
+} else {
+  setToast({
+    type: "success",
+    message: "Pendaftaran berhasil. Cek email untuk konfirmasi sebelum masuk.",
+  });
+}
   }
 
   return (

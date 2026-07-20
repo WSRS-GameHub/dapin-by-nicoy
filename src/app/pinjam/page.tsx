@@ -18,8 +18,6 @@ export default async function PinjamPage() {
 
   if (profile?.verifikasi_status !== "selesai") redirect("/ajukan");
 
-  const { data: settings } = await supabase.from("loan_settings").select("*").eq("id", 1).single();
-
   const limit = profile?.limit_khusus ?? 0;
   const tempoHari = profile?.tempo_khusus_hari ?? 5;
 
@@ -40,12 +38,14 @@ export default async function PinjamPage() {
   return (
     <PinjamForm
       userId={user.id}
-      nama={profile?.nama ?? "Anggota"}
-      idAnggota={profile?.id_anggota ?? "-"}
       tempoHari={tempoHari}
-      adminWhatsapp={settings?.admin_whatsapp ?? "6281234567890"}
       tiers={tiers ?? []}
       sudahAdaPengajuan={!!pengajuanAktif}
+      rekening={{
+        nama_bank: profile?.nama_bank ?? "",
+        no_rekening: profile?.no_rekening ?? "",
+        nama_pemilik_rekening: profile?.nama_pemilik_rekening ?? "",
+      }}
     />
   );
 }

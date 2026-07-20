@@ -40,10 +40,10 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Sudah login, buka /login atau /daftar → lempar ke beranda
+  // Sudah login, buka /login atau /daftar → lempar ke dashboard
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 

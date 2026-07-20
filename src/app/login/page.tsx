@@ -39,9 +39,9 @@ export default function LoginPage() {
   setToast({ type: "success", message: "Berhasil masuk! Mengalihkan..." });
 
   setTimeout(() => {
-    router.push(profile?.is_admin ? "/admin" : "/");
-    router.refresh();
-  }, 800);
+  router.push(profile?.is_admin ? "/admin" : "/dashboard");
+  router.refresh();
+}, 800);
 }
 
   return (

@@ -9,7 +9,7 @@ export default async function AnggotaPage() {
 
   const { data: verifiedMembers } = await supabase
     .from("profiles")
-    .select("id, nama, id_anggota, limit_khusus, tempo_khusus_hari")
+    .select("id, nama, limit_khusus, tempo_khusus_hari")
     .eq("verifikasi_status", "selesai")
     .eq("is_admin", false)
     .order("nama", { ascending: true });

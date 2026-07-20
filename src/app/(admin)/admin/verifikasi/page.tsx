@@ -2,6 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { tandaiDitinjau, tolakVerifikasi, setujuiVerifikasi } from "../actions";
 import { Clock, Eye } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function VerifikasiPage() {
   const supabase = await createClient();
 
@@ -46,10 +49,7 @@ export default async function VerifikasiPage() {
                   <div className="w-10 h-10 rounded-xl bg-sky text-blue flex items-center justify-center flex-shrink-0 text-xs font-bold font-mono">
                     {m.nama?.slice(0, 2).toUpperCase()}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13.5px] font-bold text-navy truncate">{m.nama}</p>
-                    <p className="text-[11px] text-slate">{m.id_anggota}</p>
-                  </div>
+                  <p className="flex-1 min-w-0 text-[13.5px] font-bold text-navy truncate">{m.nama}</p>
                   <span className={`flex items-center gap-1 text-[10.5px] font-bold px-2.5 py-1 rounded-lg ${cfg.className}`}>
                     <Icon size={11} /> {cfg.label}
                   </span>
@@ -91,7 +91,7 @@ export default async function VerifikasiPage() {
                         <input
                           name="tempo"
                           type="number"
-                          defaultValue={settings?.tempo_default_hari}
+                          defaultValue={settings?.tempo_default_hari ?? 5}
                           required
                           className="w-full border border-sky-line rounded-lg px-2.5 py-2 text-xs font-mono outline-none"
                         />

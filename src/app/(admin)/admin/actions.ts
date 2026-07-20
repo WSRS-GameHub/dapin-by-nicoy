@@ -3,6 +3,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+function bulatkanKe50Ribu(n: number) {
+  if (!n || isNaN(n)) return 0;
+  return Math.round(n / 50000) * 50000;
+}
+
+// ===== Verifikasi Anggota =====
+
 export async function tandaiDitinjau(memberId: string) {
   const supabase = await createClient();
   await supabase.from("profiles").update({ verifikasi_status: "ditinjau" }).eq("id", memberId);
@@ -33,12 +40,36 @@ export async function setujuiVerifikasi(formData: FormData) {
   revalidatePath("/admin/anggota");
 }
 
-// ===== Tarif Pinjaman =====
+// ===== Pengajuan Pinjaman =====
 
-function bulatkanKe50Ribu(n: number) {
-  if (!n || isNaN(n)) return 0;
-  return Math.round(n / 50000) * 50000;
+export async function setujuiPinjaman(loanId: string) {
+  const supabase = await createClient();
+  await supabase
+    .from("loans")
+    .update({ status: "disetujui", tanggal_cair: new Date().toISOString() })
+    .eq("id", loanId);
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/pinjaman");
 }
+
+export async function tolakPinjaman(loanId: string) {
+  const supabase = await createClient();
+  await supabase.from("loans").update({ status: "ditolak" }).eq("id", loanId);
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/pinjaman");
+}
+
+export async function tandaiLunas(loanId: string) {
+  const supabase = await createClient();
+  await supabase.from("loans").update({ status: "lunas" }).eq("id", loanId);
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/pinjaman");
+}
+
+// ===== Tarif Pinjaman =====
 
 export async function tambahTarif(formData: FormData) {
   const nominal_pinjam = bulatkanKe50Ribu(Number(formData.get("nominal_pinjam")));
@@ -69,6 +100,26 @@ export async function updateAdminWhatsapp(formData: FormData) {
   await supabase.from("loan_settings").update({ admin_whatsapp }).eq("id", 1);
 
   revalidatePath("/admin/pengaturan");
+}
+
+export async function tambahRekening(formData: FormData) {
+  const nama_bank = formData.get("nama_bank") as string;
+  const no_rekening = formData.get("no_rekening") as string;
+  const nama_pemilik = formData.get("nama_pemilik") as string;
+
+  const supabase = await createClient();
+  await supabase.from("rekening_admin").insert({ nama_bank, no_rekening, nama_pemilik });
+
+  revalidatePath("/admin/pengaturan");
+  revalidatePath("/riwayat");
+}
+
+export async function hapusRekening(rekeningId: string) {
+  const supabase = await createClient();
+  await supabase.from("rekening_admin").delete().eq("id", rekeningId);
+
+  revalidatePath("/admin/pengaturan");
+  revalidatePath("/riwayat");
 }
 
 export async function updateRekeningPembayaran(formData: FormData) {

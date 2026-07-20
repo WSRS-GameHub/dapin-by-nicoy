@@ -1,11 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import AjukanForm from "@/components/member/AjukanForm";
+import ProfilMember from "@/components/member/ProfilMember";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function AjukanPage() {
+export default async function ProfilPage() {
   const supabase = await createClient();
 
   const {
@@ -14,22 +14,20 @@ export default async function AjukanPage() {
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
+  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
 
   return (
-    <AjukanForm
+    <ProfilMember
       userId={user.id}
-      nama={profile?.nama ?? "Anggota"}
-      idAnggota={profile?.id_anggota ?? "-"}
-      status={profile?.verifikasi_status ?? "belum_verifikasi"}
-      initialData={{
-        alamat: profile?.alamat ?? "",
+      limit={profile?.limit_khusus ?? 0}
+      tempoHari={profile?.tempo_khusus_hari ?? 5}
+      verifikasiStatus={profile?.verifikasi_status ?? "belum_verifikasi"}
+      initial={{
+        nama: profile?.nama ?? "",
+        no_telpon: profile?.no_telpon ?? "",
         nik: profile?.nik ?? "",
         pekerjaan: profile?.pekerjaan ?? "",
+        alamat: profile?.alamat ?? "",
         kontak_darurat_nama: profile?.kontak_darurat_nama ?? "",
         kontak_darurat_notelp: profile?.kontak_darurat_notelp ?? "",
         kontak_darurat_hubungan: profile?.kontak_darurat_hubungan ?? "",
