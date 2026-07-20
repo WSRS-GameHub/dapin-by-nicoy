@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { setujuiPinjaman, tolakPinjaman, tandaiLunas } from "../actions";
-import { Clock, Wallet, CheckCircle2, Landmark } from "lucide-react";
+import { Clock, Wallet, CheckCircle2, XCircle, Landmark, ShieldCheck, ImageIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -10,12 +10,22 @@ export default async function PinjamanPage() {
 
   const { data: loans } = await supabase
     .from("loans")
-    .select("*, profiles!loans_member_id_fkey(nama, nama_bank, no_rekening, nama_pemilik_rekening)")
+    .select("*, profiles!loans_member_id_fkey(nama, verifikasi_status, nama_bank, no_rekening, nama_pemilik_rekening)")
     .order("created_at", { ascending: false });
 
   const formatRupiah = (n: number) => "Rp " + (n ?? 0).toLocaleString("id-ID");
-  const formatTanggal = (d: string) =>
-    new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  const formatTanggalJam = (d: string) =>
+    new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) +
+    ", " +
+    new Date(d).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) +
+    " WIB";
+
+  function hitungJatuhTempo(tanggalCair: string, tempoHari: number) {
+    const cair = new Date(tanggalCair);
+    const jt = new Date(cair);
+    jt.setDate(jt.getDate() + tempoHari);
+    return jt;
+  }
 
   const menunggu = loans?.filter((l) => l.status === "menunggu") ?? [];
   const aktif = loans?.filter((l) => l.status === "disetujui") ?? [];
@@ -32,12 +42,16 @@ export default async function PinjamanPage() {
         {menunggu.length > 0 ? (
           menunggu.map((l) => (
             <div key={l.id} className="bg-white rounded-2xl shadow-sm p-4">
-              <div className="flex items-start justify-between mb-2">
-                <p className="text-sm font-bold text-navy">{l.profiles?.nama ?? "-"}</p>
-                <span className="text-[10.5px] font-bold px-2.5 py-1 rounded-lg bg-amber/15 text-amber">
+              <div className="flex items-start justify-between mb-1">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-bold text-navy">{l.profiles?.nama ?? "-"}</p>
+                  {l.profiles?.verifikasi_status === "selesai" && <VerifiedBadge />}
+                </div>
+                <span className="text-[10.5px] font-bold px-2.5 py-1 rounded-lg bg-amber/15 text-amber flex-shrink-0">
                   Menunggu
                 </span>
               </div>
+              <p className="text-[11px] text-slate mb-2">Diajukan {formatTanggalJam(l.created_at)}</p>
               <div className="flex justify-between text-xs text-slate mb-3">
                 <span>
                   Pinjam <b className="text-navy font-mono">{formatRupiah(l.nominal)}</b>
@@ -72,37 +86,74 @@ export default async function PinjamanPage() {
       <SectionTitle icon={Wallet} label={`Sedang Berjalan (${aktif.length})`} color="text-blue" />
       <div className="flex flex-col gap-2.5 mb-6">
         {aktif.length > 0 ? (
-          aktif.map((l) => (
-            <div key={l.id} className="bg-white rounded-2xl shadow-sm p-4">
-              <div className="flex items-start justify-between mb-2">
-                <p className="text-sm font-bold text-navy">{l.profiles?.nama ?? "-"}</p>
-                <span className="text-[10.5px] font-bold px-2.5 py-1 rounded-lg bg-blue/15 text-blue">
-                  Aktif
-                </span>
-              </div>
-              <div className="flex justify-between text-xs text-slate mb-2">
-                <span>
-                  Pinjam <b className="text-navy font-mono">{formatRupiah(l.nominal)}</b>
-                </span>
-                <span>
-                  Kembali <b className="text-teal font-mono">{formatRupiah(l.jumlah_kembali)}</b>
-                </span>
-              </div>
-              {l.tanggal_cair && (
-                <p className="text-[11px] text-slate mb-3">
-                  Cair {formatTanggal(l.tanggal_cair)} · Tempo {l.tempo_hari} hari
-                </p>
-              )}
+          aktif.map((l) => {
+            const jatuhTempo = l.tanggal_cair && l.tempo_hari ? hitungJatuhTempo(l.tanggal_cair, l.tempo_hari) : null;
+            return (
+              <div key={l.id} className="bg-white rounded-2xl shadow-sm p-4">
+                <div className="flex items-start justify-between mb-1">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-bold text-navy">{l.profiles?.nama ?? "-"}</p>
+                    {l.profiles?.verifikasi_status === "selesai" && <VerifiedBadge />}
+                  </div>
+                  <span className="text-[10.5px] font-bold px-2.5 py-1 rounded-lg bg-blue/15 text-blue flex-shrink-0">
+                    Aktif
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs text-slate mb-2">
+                  <span>
+                    Pinjam <b className="text-navy font-mono">{formatRupiah(l.nominal)}</b>
+                  </span>
+                  <span>
+                    Kembali <b className="text-teal font-mono">{formatRupiah(l.jumlah_kembali)}</b>
+                  </span>
+                </div>
+                {l.tanggal_cair && (
+                  <div className="flex flex-col gap-1 text-[11px] text-slate mb-3 bg-sky/60 rounded-lg px-3 py-2.5">
+                    <div className="flex justify-between">
+                      <span>Mulai</span>
+                      <b className="text-navy">{formatTanggalJam(l.tanggal_cair)}</b>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Jatuh tempo</span>
+                      <b className="text-amber">{jatuhTempo ? formatTanggalJam(jatuhTempo.toISOString()) : "-"}</b>
+                    </div>
+                  </div>
+                )}
 
-              <RekeningInfo profile={l.profiles} />
+                {l.bukti_transfer_url ? (
+                  
+                    <a href={l.bukti_transfer_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 bg-teal/10 rounded-xl px-3.5 py-2.5 mb-3"
+                  >
+                    <img
+                      src={l.bukti_transfer_url}
+                      alt="Bukti transfer"
+                      className="w-11 h-11 rounded-lg object-cover flex-shrink-0"
+                    />
+                    <div className="text-[11px] text-teal">
+                      <p className="font-bold">Bukti transfer diterima</p>
+                      <p>{l.bukti_transfer_at ? formatTanggalJam(l.bukti_transfer_at) : ""} · Ketuk buat lihat</p>
+                    </div>
+                  </a>
+                ) : (
+                  <div className="flex items-center gap-2 bg-sky rounded-xl px-3.5 py-2.5 mb-3 text-[11px] text-slate">
+                    <ImageIcon size={14} className="text-slate flex-shrink-0" />
+                    Member belum kirim bukti transfer.
+                  </div>
+                )}
 
-              <form action={tandaiLunas.bind(null, l.id)} className="mt-3">
-                <button className="w-full text-xs font-bold text-white bg-blue px-3.5 py-2.5 rounded-lg">
-                  Tandai Lunas
-                </button>
-              </form>
-            </div>
-          ))
+                <RekeningInfo profile={l.profiles} />
+
+                <form action={tandaiLunas.bind(null, l.id)} className="mt-3">
+                  <button className="w-full text-xs font-bold text-white bg-blue px-3.5 py-2.5 rounded-lg">
+                    Tandai Lunas
+                  </button>
+                </form>
+              </div>
+            );
+          })
         ) : (
           <p className="text-xs text-slate text-center py-6">Tidak ada pinjaman aktif.</p>
         )}
@@ -113,18 +164,21 @@ export default async function PinjamanPage() {
       <div className="flex flex-col gap-2.5">
         {selesai.length > 0 ? (
           selesai.map((l) => (
-            <div key={l.id} className="bg-white rounded-2xl shadow-sm p-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-bold text-navy">{l.profiles?.nama ?? "-"}</p>
-                <p className="text-xs text-slate font-mono mt-1">{formatRupiah(l.nominal)}</p>
+            <div key={l.id} className="bg-white rounded-2xl shadow-sm p-4">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-bold text-navy">{l.profiles?.nama ?? "-"}</p>
+                  {l.profiles?.verifikasi_status === "selesai" && <VerifiedBadge />}
+                </div>
+                <span
+                  className={`text-[10.5px] font-bold px-2.5 py-1 rounded-lg flex-shrink-0 ${
+                    l.status === "lunas" ? "bg-teal/15 text-teal" : "bg-red-100 text-red-500"
+                  }`}
+                >
+                  {l.status === "lunas" ? "Lunas" : "Ditolak"}
+                </span>
               </div>
-              <span
-                className={`text-[10.5px] font-bold px-2.5 py-1 rounded-lg ${
-                  l.status === "lunas" ? "bg-teal/15 text-teal" : "bg-red-100 text-red-500"
-                }`}
-              >
-                {l.status === "lunas" ? "Lunas" : "Ditolak"}
-              </span>
+              <p className="text-xs text-slate font-mono mt-1">{formatRupiah(l.nominal)}</p>
             </div>
           ))
         ) : (
@@ -132,6 +186,25 @@ export default async function PinjamanPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function SectionTitle({
+  icon: Icon, label, color,
+}: { icon: typeof Clock; label: string; color: string }) {
+  return (
+    <div className={`flex items-center gap-2 mb-3 ${color}`}>
+      <Icon size={15} />
+      <p className="text-sm font-bold">{label}</p>
+    </div>
+  );
+}
+
+function VerifiedBadge() {
+  return (
+    <span className="flex items-center gap-0.5 text-[9px] font-bold text-teal bg-teal/10 px-1.5 py-0.5 rounded">
+      <ShieldCheck size={9} /> Terverifikasi
+    </span>
   );
 }
 
@@ -156,17 +229,6 @@ function RekeningInfo({
         <br />
         a.n {profile.nama_pemilik_rekening}
       </div>
-    </div>
-  );
-}
-
-function SectionTitle({
-  icon: Icon, label, color,
-}: { icon: typeof Clock; label: string; color: string }) {
-  return (
-    <div className={`flex items-center gap-2 mb-3 ${color}`}>
-      <Icon size={15} />
-      <p className="text-sm font-bold">{label}</p>
     </div>
   );
 }

@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Home, ShieldCheck, Wallet, Users, Tag, Settings } from "lucide-react";
-import SignOutButton from "@/components/member/SignOutButton";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -23,15 +22,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="min-h-screen flex flex-col max-w-md mx-auto bg-[#F3F6FE]">
-      <div className="flex items-center justify-between px-5 pt-6 pb-4">
-        <div>
-          <p className="text-xs text-slate font-medium">Halo, Admin 👋</p>
-          <h1 className="font-display font-bold text-lg text-navy mt-0.5">{profile?.nama}</h1>
-          <span className="inline-block text-[10px] font-mono font-semibold text-blue bg-sky px-2 py-0.5 rounded mt-1">
-            Panel Admin
-          </span>
-        </div>
-        <SignOutButton />
+      <div className="px-5 pt-6 pb-4">
+        <p className="text-xs text-slate font-medium">Halo, Admin 👋</p>
+        <h1 className="font-display font-bold text-lg text-navy mt-0.5">{profile?.nama}</h1>
+        <span className="inline-block text-[10px] font-mono font-semibold text-blue bg-sky px-2 py-0.5 rounded mt-1">
+          Panel Admin
+        </span>
       </div>
 
       <div className="flex-1">{children}</div>

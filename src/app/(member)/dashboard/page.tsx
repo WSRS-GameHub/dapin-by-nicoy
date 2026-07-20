@@ -15,6 +15,7 @@ import {
   Wallet,
   CheckCircle2,
   XCircle,
+  Send,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -65,6 +66,7 @@ export default async function DashboardPage() {
 
   const limit = profile?.limit_khusus ?? 0;
   const tempoHari = profile?.tempo_khusus_hari ?? 5;
+  const sisaLimit = activeLoan ? Math.max(0, limit - activeLoan.nominal) : limit;
 
   let hariBerjalan = 0;
   let sisaHari = tempoHari;
@@ -185,10 +187,31 @@ export default async function DashboardPage() {
               </span>
             </div>
 
-            {!activeLoan && (
+            {/* Sisa Limit */}
+            <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-center relative z-10">
+              <span className="text-[11px] text-[#A9B8DE]">Sisa Limit</span>
+              <span className="text-sm font-mono font-bold text-white">{formatRupiah(sisaLimit)}</span>
+            </div>
+
+            {activeLoan ? (
+              activeLoan.bukti_transfer_url ? (
+                <div className="mt-4 flex items-center justify-center gap-2 bg-teal/15 text-[#5FE1D3] text-xs font-semibold rounded-xl py-3 relative z-10">
+                  <CheckCircle2 size={15} />
+                  Bukti transfer terkirim, menunggu konfirmasi admin
+                </div>
+              ) : (
+                <Link
+                  href="/bayar"
+                  className="mt-4 flex items-center justify-center gap-2 bg-blue text-white text-sm font-semibold rounded-xl py-3 relative z-10 hover:bg-blue-dark transition-colors"
+                >
+                  <Send size={15} />
+                  Bayar Sekarang
+                </Link>
+              )
+            ) : (
               <Link
                 href="/pinjam"
-                className="mt-5 flex items-center justify-center gap-2 bg-blue text-white text-sm font-semibold rounded-xl py-3 relative z-10 hover:bg-blue-dark transition-colors"
+                className="mt-4 flex items-center justify-center gap-2 bg-blue text-white text-sm font-semibold rounded-xl py-3 relative z-10 hover:bg-blue-dark transition-colors"
               >
                 Ajukan Pinjaman
                 <ArrowRight size={15} />

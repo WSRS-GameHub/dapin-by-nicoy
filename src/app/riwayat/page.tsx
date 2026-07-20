@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Home, History, Plus, User, Clock, CheckCircle2, XCircle, Wallet } from "lucide-react";
-import BankLogo from "@/components/ui/BankLogo";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -27,12 +26,6 @@ export default async function RiwayatPage() {
     .select("*")
     .eq("member_id", user.id)
     .order("created_at", { ascending: false });
-
-  const adaPinjamanAktif = loans?.some((l) => l.status === "disetujui");
-
-  const { data: rekeningList } = adaPinjamanAktif
-    ? await supabase.from("rekening_admin").select("*").order("created_at", { ascending: true })
-    : { data: null };
 
   const sudahTerverifikasi = profile?.verifikasi_status === "selesai";
   const ajukanHref = sudahTerverifikasi ? "/pinjam" : "/ajukan";
@@ -65,26 +58,6 @@ export default async function RiwayatPage() {
         <h1 className="font-display font-bold text-lg text-navy">Riwayat Pinjaman</h1>
         <p className="text-sm text-slate mt-1">Semua pengajuan pinjaman kamu.</p>
       </div>
-
-      {adaPinjamanAktif && rekeningList && rekeningList.length > 0 && (
-        <div className="px-5 mb-5">
-          <p className="text-xs font-bold text-slate uppercase tracking-wide mb-2 px-1">
-            Bayar ke Salah Satu Rekening
-          </p>
-          <div className="flex flex-col gap-2">
-            {rekeningList.map((r) => (
-              <div key={r.id} className="bg-white rounded-2xl shadow-sm p-3.5 flex items-center gap-3">
-                <BankLogo namaBank={r.nama_bank} size={40} />
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-navy">{r.nama_bank}</p>
-                  <p className="text-xs text-slate font-mono mt-0.5">{r.no_rekening}</p>
-                  <p className="text-[11px] text-slate">a.n {r.nama_pemilik}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       <div className="px-5 flex-1 flex flex-col gap-2.5">
         {loans && loans.length > 0 ? (
@@ -129,6 +102,13 @@ export default async function RiwayatPage() {
                   <div className="flex justify-between mt-3 pt-3 border-t border-sky-line text-[11px] text-slate">
                     <span>Diajukan {formatTanggalJam(loan.created_at)}</span>
                     <span>Tempo {loan.tempo_hari ?? "-"} hari</span>
+                  </div>
+                )}
+
+                {loan.status === "disetujui" && loan.bukti_transfer_url && (
+                  <div className="mt-3 flex items-center gap-2 bg-teal/10 text-teal text-[11px] font-semibold rounded-lg px-3 py-2.5">
+                    <CheckCircle2 size={13} />
+                    Bukti transfer terkirim, menunggu konfirmasi admin
                   </div>
                 )}
               </div>

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProfilPengaturan from "@/components/admin/profilPengaturan";
 import RekeningPembayaran from "@/components/admin/RekeningPembayaran";
+import SignOutButton from "@/components/admin/SignOutButtonFull";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -39,6 +40,10 @@ export default async function PengaturanPage() {
       />
 
       <RekeningPembayaran initial={rekeningList ?? []} />
+
+      <div className="border-t border-sky-line pt-5">
+        <SignOutButton />
+      </div>
     </div>
   );
 }
