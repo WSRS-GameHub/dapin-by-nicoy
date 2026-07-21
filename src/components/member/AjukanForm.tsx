@@ -112,7 +112,7 @@ Kontak Darurat:
 Rekening:
 - ${form.nama_bank} ${form.no_rekening} a.n ${form.nama_pemilik_rekening}
 
-erikut saya kirimkan seluruh dokumen dan data yang diperlukan untuk proses verifikasi.
+Berikut saya kirimkan seluruh dokumen dan data yang diperlukan untuk proses verifikasi.
 
 Data yang dilampirkan:
 
@@ -126,7 +126,8 @@ Foto bersama orang tua.
 Foto bersama teman.
 Foto rumah tampak depan.
 Foto rumah tampak samping.
-Video pernyataan/perjanjian. (**Naskah Video Perjanjian DAPIN by Nicoy**
+Video pernyataan/perjanjian. 
+(**Naskah Video Perjanjian DAPIN by Nicoy**)
 
 Halo, perkenalkan.
 
@@ -138,9 +139,8 @@ Saya memahami bahwa pinjaman yang saya terima wajib saya lunasi sesuai dengan ja
 
 Apabila saya memberikan data yang tidak benar atau tidak melunasi pinjaman sesuai dengan ketentuan yang telah disepakati, saya bersedia menerima konsekuensi sesuai dengan peraturan **DAPIN by Nicoy**.
 
-Demikian pernyataan ini saya buat dengan sadar dan tanpa paksaan dari pihak mana pun.
+Demikian pernyataan ini saya buat dengan sadar dan tanpa paksaan dari pihak mana pun."
 
-Terima kasih.
 
 Mohon dilakukan pengecekan dan verifikasi terhadap data yang telah saya kirim. Apabila terdapat dokumen yang kurang atau perlu diperbaiki, mohon informasikan kepada saya.
 
