@@ -15,10 +15,10 @@ export default async function PinjamanPage() {
 
   const formatRupiah = (n: number) => "Rp " + (n ?? 0).toLocaleString("id-ID");
   const formatTanggalJam = (d: string) =>
-    new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) +
-    ", " +
-    new Date(d).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) +
-    " WIB";
+  new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" }) +
+  ", " +
+  new Date(d).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" }) +
+  " WIB";
 
   function hitungJatuhTempo(tanggalCair: string, tempoHari: number) {
     const cair = new Date(tanggalCair);

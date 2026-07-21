@@ -33,10 +33,11 @@ export default function PinjamForm({
 
   const formatRupiah = (n: number) => "Rp " + n.toLocaleString("id-ID");
   const formatTanggalJam = (d: Date) =>
-    d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) +
-    ", " +
-    d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) +
-    " WIB";
+  d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) +
+  ", " +
+  d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) +
+  " WIB";
+
 
   const now = new Date();
   const perkiraanJatuhTempo = new Date(now);
