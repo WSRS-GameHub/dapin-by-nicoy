@@ -20,12 +20,18 @@ export default async function AjukanPage() {
     .eq("id", user.id)
     .single();
 
+  const { data: settings } = await supabase
+    .from("loan_settings")
+    .select("admin_whatsapp")
+    .eq("id", 1)
+    .single();
+
   return (
     <AjukanForm
       userId={user.id}
       nama={profile?.nama ?? "Anggota"}
-      idAnggota={profile?.id_anggota ?? "-"}
       status={profile?.verifikasi_status ?? "belum_verifikasi"}
+      adminWhatsapp={settings?.admin_whatsapp ?? ""}
       initialData={{
         alamat: profile?.alamat ?? "",
         nik: profile?.nik ?? "",

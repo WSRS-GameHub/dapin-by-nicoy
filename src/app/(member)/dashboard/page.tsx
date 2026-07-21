@@ -7,16 +7,15 @@ import {
   History,
   BarChart3,
   LifeBuoy,
-  User,
-  Home,
-  Lock,
   ArrowRight,
   Clock,
   Wallet,
   CheckCircle2,
   XCircle,
   Send,
+  Lock,
 } from "lucide-react";
+import BottomNav from "@/components/member/BottomNav";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -187,7 +186,6 @@ export default async function DashboardPage() {
               </span>
             </div>
 
-            {/* Sisa Limit */}
             <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-center relative z-10">
               <span className="text-[11px] text-[#A9B8DE]">Sisa Limit</span>
               <span className="text-sm font-mono font-bold text-white">{formatRupiah(sisaLimit)}</span>
@@ -326,25 +324,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Bottom nav */}
-      <div className="mt-auto sticky bottom-0 bg-white border-t border-sky-line flex justify-around items-center py-3 pb-6">
-        <div className="flex flex-col items-center gap-1 w-[70px] text-blue">
-          <Home size={21} />
-          <span className="text-[10.5px] font-semibold">Beranda</span>
-        </div>
-        <Link href="/riwayat" className="flex flex-col items-center gap-1 w-[70px] text-slate">
-          <History size={21} />
-          <span className="text-[10.5px] font-semibold">Riwayat</span>
-        </Link>
-        <Link href={ajukanHref} className="flex flex-col items-center gap-1 w-[70px] text-slate">
-          <Plus size={21} />
-          <span className="text-[10.5px] font-semibold">{ajukanLabel}</span>
-        </Link>
-        <Link href="/profil" className="flex flex-col items-center gap-1 w-[70px] text-slate">
-          <User size={21} />
-          <span className="text-[10.5px] font-semibold">Profil</span>
-        </Link>
-      </div>
+      <BottomNav ajukanHref={ajukanHref} ajukanLabel={ajukanLabel} />
     </div>
   );
 }

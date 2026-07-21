@@ -12,8 +12,8 @@ type Status = "belum_verifikasi" | "menunggu" | "ditinjau" | "selesai";
 type Props = {
   userId: string;
   nama: string;
-  idAnggota: string;
   status: Status;
+  adminWhatsapp: string;
   initialData: {
     alamat: string;
     nik: string;
@@ -53,8 +53,8 @@ const statusConfig: Record<Status, { label: string; icon: typeof Clock; classNam
 export default function AjukanForm({
   userId,
   nama,
-  idAnggota,
   status,
+  adminWhatsapp,
   initialData,
 }: Props) {
   const router = useRouter();
@@ -98,8 +98,60 @@ export default function AjukanForm({
       return;
     }
 
-    setToast({ type: "success", message: "Data tersimpan! Menunggu admin memverifikasi." });
-    router.refresh();
+    // Template pesan WhatsApp — ganti teks di sini kalau mau ubah kata-katanya
+    const pesan = `Halo Admin, saya ${nama} mau mengajukan verifikasi keanggotaan di Dapin.
+
+Data diri saya sudah saya isi di aplikasi:
+- NIK: ${form.nik}
+- Pekerjaan: ${form.pekerjaan}
+- Alamat: ${form.alamat}
+
+Kontak Darurat:
+- ${form.kontak_darurat_nama} (${form.kontak_darurat_hubungan}), ${form.kontak_darurat_notelp}
+
+Rekening:
+- ${form.nama_bank} ${form.no_rekening} a.n ${form.nama_pemilik_rekening}
+
+erikut saya kirimkan seluruh dokumen dan data yang diperlukan untuk proses verifikasi.
+
+Data yang dilampirkan:
+
+Foto menggunakan aplikasi Cam GPS.
+Foto KTP.
+Foto selfie sambil memegang KTP.
+Foto Kartu Keluarga (KK).
+Screenshot seluruh akun media sosial yang dimiliki.
+Screenshot akun media sosial dari 2 orang teman.
+Foto bersama orang tua.
+Foto bersama teman.
+Foto rumah tampak depan.
+Foto rumah tampak samping.
+Video pernyataan/perjanjian. (**Naskah Video Perjanjian DAPIN by Nicoy**
+
+Halo, perkenalkan.
+
+Nama saya **[Nama Lengkap]**, dengan NIK **[Nomor KTP]**.
+
+Saya mengajukan pinjaman melalui **DAPIN by Nicoy**. Saya menyatakan bahwa seluruh data dan dokumen yang saya berikan adalah benar, asli, dan dapat dipertanggungjawabkan.
+
+Saya memahami bahwa pinjaman yang saya terima wajib saya lunasi sesuai dengan jatuh tempo, yaitu maksimal **5 (lima) hari** sejak dana diterima.
+
+Apabila saya memberikan data yang tidak benar atau tidak melunasi pinjaman sesuai dengan ketentuan yang telah disepakati, saya bersedia menerima konsekuensi sesuai dengan peraturan **DAPIN by Nicoy**.
+
+Demikian pernyataan ini saya buat dengan sadar dan tanpa paksaan dari pihak mana pun.
+
+Terima kasih.
+
+Mohon dilakukan pengecekan dan verifikasi terhadap data yang telah saya kirim. Apabila terdapat dokumen yang kurang atau perlu diperbaiki, mohon informasikan kepada saya.
+
+Terima kasih.`;
+
+    setToast({ type: "success", message: "Data tersimpan! Mengalihkan ke WhatsApp..." });
+
+    setTimeout(() => {
+      const waUrl = `https://wa.me/${adminWhatsapp}?text=${encodeURIComponent(pesan)}`;
+      window.location.href = waUrl;
+    }, 900);
   }
 
   return (
@@ -202,7 +254,7 @@ export default function AjukanForm({
                 className="flex items-center justify-center gap-2 bg-blue text-white font-semibold text-sm rounded-xl py-3.5 disabled:opacity-60"
               >
                 <Send size={16} />
-                {loading ? "Menyimpan..." : "Kirim Verifikasi"}
+                {loading ? "Menyimpan..." : "Kirim Verifikasi & Lanjut ke WhatsApp"}
               </button>
             )}
           </form>

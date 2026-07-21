@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { Home, History, Plus, User, Clock, CheckCircle2, XCircle, Wallet } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, Wallet } from "lucide-react";
+import BottomNav from "@/components/member/BottomNav";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -123,24 +123,7 @@ export default async function RiwayatPage() {
         )}
       </div>
 
-      <div className="mt-auto sticky bottom-0 bg-white border-t border-sky-line flex justify-around items-center py-3 pb-6">
-        <Link href="/dashboard" className="flex flex-col items-center gap-1 w-[70px] text-slate">
-          <Home size={21} />
-          <span className="text-[10.5px] font-semibold">Beranda</span>
-        </Link>
-        <div className="flex flex-col items-center gap-1 w-[70px] text-blue">
-          <History size={21} />
-          <span className="text-[10.5px] font-semibold">Riwayat</span>
-        </div>
-        <Link href={ajukanHref} className="flex flex-col items-center gap-1 w-[70px] text-slate">
-          <Plus size={21} />
-          <span className="text-[10.5px] font-semibold">{ajukanLabel}</span>
-        </Link>
-        <Link href="/profil" className="flex flex-col items-center gap-1 w-[70px] text-slate">
-          <User size={21} />
-          <span className="text-[10.5px] font-semibold">Profil</span>
-        </Link>
-      </div>
+      <BottomNav ajukanHref={ajukanHref} ajukanLabel={ajukanLabel} />
     </div>
   );
 }
