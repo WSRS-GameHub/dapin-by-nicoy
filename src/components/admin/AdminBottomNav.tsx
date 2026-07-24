@@ -3,31 +3,28 @@
 import { useState, useEffect, useRef, startTransition } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Wallet, History, User } from "lucide-react";
+import { Home, ShieldCheck, Wallet, Users, Tag, Settings } from "lucide-react";
 
-type Props = {
-  ajukanHref: string;
-  ajukanLabel: string;
-};
+const STORAGE_KEY = "dapin-admin-bottomnav-idx";
 
-const STORAGE_KEY = "dapin-bottomnav-idx";
+const items = [
+  { href: "/admin", icon: Home, label: "Beranda" },
+  { href: "/admin/verifikasi", icon: ShieldCheck, label: "Verifikasi" },
+  { href: "/admin/pinjaman", icon: Wallet, label: "Pinjaman" },
+  { href: "/admin/anggota", icon: Users, label: "Anggota" },
+  { href: "/admin/tarif", icon: Tag, label: "Tarif" },
+  { href: "/admin/pengaturan", icon: Settings, label: "Atur" },
+];
 
-export default function BottomNav({ ajukanHref, ajukanLabel }: Props) {
+export default function AdminBottomNav() {
   const pathname = usePathname();
 
-  const items = [
-    { href: "/dashboard", icon: Home, label: "Beranda" },
-    { href: ajukanHref, icon: Wallet, label: ajukanLabel },
-    { href: "/riwayat", icon: History, label: "Riwayat" },
-    { href: "/profil", icon: User, label: "Profil" },
-  ];
-
   const activeIndex = items.findIndex((item) =>
-    item.href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.href)
+    item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href)
   );
   const idx = activeIndex === -1 ? 0 : activeIndex;
+  const widthPercent = 100 / items.length;
 
-  // Mulai dari posisi tab terakhir (kalau ada), baru geser ke posisi sekarang
   const [displayIdx, setDisplayIdx] = useState<number>(() => {
     if (typeof window === "undefined") return idx;
     const stored = sessionStorage.getItem(STORAGE_KEY);
@@ -38,10 +35,12 @@ export default function BottomNav({ ajukanHref, ajukanLabel }: Props) {
 
   useEffect(() => {
     if (prevIdxRef.current !== idx) {
-      // kasih jeda sedikit biar browser sempat render posisi lama dulu,
-      // baru transisi ke posisi baru bisa keanimasi
       const t = requestAnimationFrame(() => {
-        requestAnimationFrame(() => setDisplayIdx(idx));
+        requestAnimationFrame(() => {
+          startTransition(() => {
+            setDisplayIdx(idx);
+          });
+        });
       });
       prevIdxRef.current = idx;
       startTransition(() => {
@@ -62,15 +61,15 @@ export default function BottomNav({ ajukanHref, ajukanLabel }: Props) {
   }, [idx]);
 
   return (
-    <div className="mt-auto sticky bottom-0 bg-white border-t border-sky-line px-3 pt-2.5 pb-6">
+    <div className="mt-auto sticky bottom-0 bg-white border-t border-sky-line px-2 pt-2.5 pb-6">
       <div className="relative">
         <div
-          className={`absolute top-0 h-[54px] bg-sky rounded-2xl ${
+          className={`absolute top-0 h-[50px] bg-sky rounded-2xl ${
             siap ? "transition-all duration-300 ease-out" : ""
           }`}
           style={{
-            width: "25%",
-            left: `${displayIdx * 25}%`,
+            width: `${widthPercent}%`,
+            left: `${displayIdx * widthPercent}%`,
           }}
         />
 
@@ -80,16 +79,17 @@ export default function BottomNav({ ajukanHref, ajukanLabel }: Props) {
             const active = i === displayIdx;
             return (
               <Link
-                key={item.href + item.label}
+                key={item.href}
                 href={item.href}
-                className="flex flex-col items-center gap-1 w-1/4 py-2 z-10"
+                className="flex flex-col items-center gap-1 py-2 z-10"
+                style={{ width: `${widthPercent}%` }}
               >
                 <Icon
-                  size={21}
+                  size={18}
                   className={`transition-colors duration-300 ${active ? "text-blue" : "text-slate"}`}
                 />
                 <span
-                  className={`text-[10.5px] font-semibold transition-colors duration-300 ${
+                  className={`text-[9.5px] font-semibold transition-colors duration-300 ${
                     active ? "text-blue" : "text-slate"
                   }`}
                 >
