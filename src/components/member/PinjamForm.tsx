@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { ArrowLeft, Send, Check, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Send, Check, AlertTriangle, Calendar } from "lucide-react";
 import Toast from "@/components/ui/Toast";
 
 type Tier = { id: string; nominal_pinjam: number; nominal_kembali: number };
@@ -33,11 +33,19 @@ export default function PinjamForm({
 
   const formatRupiah = (n: number) => "Rp " + n.toLocaleString("id-ID");
   const formatTanggalJam = (d: Date) =>
-  d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) +
-  ", " +
-  d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) +
-  " WIB";
-
+    d.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      timeZone: "Asia/Jakarta",
+    }) +
+    ", " +
+    d.toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Jakarta",
+    }) +
+    " WIB";
 
   const now = new Date();
   const perkiraanJatuhTempo = new Date(now);
@@ -159,8 +167,11 @@ export default function PinjamForm({
               a.n {rekening.nama_pemilik_rekening || "-"}
             </div>
           </div>
-          <div className="border-t border-sky-line pt-3 text-[11.5px] text-slate">
-            Jatuh tempo pada tanggal <b className="text-navy">{formatTanggalJam(perkiraanJatuhTempo)}</b>
+          <div className="border-t border-sky-line pt-3 text-[11.5px] text-slate flex gap-2.5">
+            <Calendar size={15} className="text-blue flex-shrink-0 mt-0.5" />
+            <div>
+              Jatuh tempo pada tanggal <b className="text-navy">{formatTanggalJam(perkiraanJatuhTempo)}</b>
+            </div>
           </div>
         </div>
       )}

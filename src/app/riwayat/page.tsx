@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Clock, CheckCircle2, XCircle, Wallet } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, Wallet, AlertTriangle } from "lucide-react";
 import BottomNav from "@/components/member/BottomNav";
+import { hitungDenda } from "@/lib/HitungDenda";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -21,11 +22,19 @@ export default async function RiwayatPage() {
     .eq("id", user.id)
     .single();
 
+  const { data: settings } = await supabase
+    .from("loan_settings")
+    .select("denda_per_hari")
+    .eq("id", 1)
+    .single();
+
   const { data: loans } = await supabase
     .from("loans")
     .select("*")
     .eq("member_id", user.id)
     .order("created_at", { ascending: false });
+
+  const dendaPerHari = settings?.denda_per_hari ?? 0;
 
   const sudahTerverifikasi = profile?.verifikasi_status === "selesai";
   const ajukanHref = sudahTerverifikasi ? "/pinjam" : "/ajukan";
@@ -33,17 +42,19 @@ export default async function RiwayatPage() {
 
   const formatRupiah = (n: number) => "Rp " + (n ?? 0).toLocaleString("id-ID");
   const formatTanggalJam = (d: string) =>
-  new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" }) +
-  ", " +
-  new Date(d).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" }) +
-  " WIB";
-
-  function hitungJatuhTempo(tanggalCair: string, tempoHari: number) {
-    const cair = new Date(tanggalCair);
-    const jatuhTempo = new Date(cair);
-    jatuhTempo.setDate(jatuhTempo.getDate() + tempoHari);
-    return jatuhTempo;
-  }
+    new Date(d).toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      timeZone: "Asia/Jakarta",
+    }) +
+    ", " +
+    new Date(d).toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Jakarta",
+    }) +
+    " WIB";
 
   const statusCfg: Record<string, { label: string; icon: typeof Clock; className: string }> = {
     menunggu: { label: "Menunggu", icon: Clock, className: "bg-amber/15 text-amber" },
@@ -64,10 +75,19 @@ export default async function RiwayatPage() {
           loans.map((loan) => {
             const cfg = statusCfg[loan.status] ?? statusCfg.menunggu;
             const Icon = cfg.icon;
-            const jatuhTempo =
-              loan.tanggal_cair && loan.tempo_hari
-                ? hitungJatuhTempo(loan.tanggal_cair, loan.tempo_hari)
-                : null;
+
+            let jatuhTempo: Date | null = null;
+            let hariTelat = 0;
+            let totalDenda = 0;
+
+            if (loan.tanggal_cair && loan.tempo_hari) {
+              const denda = hitungDenda(loan.tanggal_cair, loan.tempo_hari, dendaPerHari);
+              jatuhTempo = denda.jatuhTempo;
+              hariTelat = denda.hariTelat;
+              totalDenda = denda.totalDenda;
+            }
+
+            const buktiDitolak = loan.status === "disetujui" && !loan.bukti_transfer_url && loan.bukti_ditolak_at;
 
             return (
               <div key={loan.id} className="bg-white rounded-2xl p-4 shadow-sm">
@@ -102,6 +122,23 @@ export default async function RiwayatPage() {
                   <div className="flex justify-between mt-3 pt-3 border-t border-sky-line text-[11px] text-slate">
                     <span>Diajukan {formatTanggalJam(loan.created_at)}</span>
                     <span>Tempo {loan.tempo_hari ?? "-"} hari</span>
+                  </div>
+                )}
+
+                {loan.status === "disetujui" && hariTelat > 0 && (
+                  <div className="mt-3 flex items-center gap-2 bg-red-50 text-red-600 text-[11px] font-semibold rounded-lg px-3 py-2.5">
+                    <AlertTriangle size={13} />
+                    Telat {hariTelat} hari, denda {formatRupiah(totalDenda)} — total bayar {formatRupiah(loan.jumlah_kembali + totalDenda)}
+                  </div>
+                )}
+
+                {buktiDitolak && (
+                  <div className="mt-3 flex items-start gap-2 bg-red-50 text-red-600 text-[11px] font-semibold rounded-lg px-3 py-2.5">
+                    <XCircle size={13} className="flex-shrink-0 mt-0.5" />
+                    <span>
+                      Bukti transfer ditolak admin
+                      {loan.bukti_ditolak_alasan ? ": " + loan.bukti_ditolak_alasan : "."} Upload ulang di halaman Bayar.
+                    </span>
                   </div>
                 )}
 

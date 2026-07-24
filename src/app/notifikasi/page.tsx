@@ -1,15 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import {
-  ArrowLeft, AlertTriangle, Clock, CheckCircle2, XCircle, Eye, ShieldCheck,
+  ArrowLeft, AlertTriangle, Clock, CheckCircle2, XCircle, Eye, ShieldCheck, ImageOff,
 } from "lucide-react";
+import { hitungDenda } from "@/lib/HitungDenda";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 type Notif = {
   id: string;
-  type: "overdue" | "today" | "h1" | "verifikasi" | "status";
+  type: "overdue" | "today" | "h1" | "verifikasi" | "status" | "bukti_ditolak";
   title: string;
   desc: string;
   icon: typeof AlertTriangle;
@@ -31,16 +32,24 @@ export default async function NotifikasiPage() {
     .eq("id", user.id)
     .single();
 
+  const { data: settings } = await supabase
+    .from("loan_settings")
+    .select("denda_per_hari")
+    .eq("id", 1)
+    .single();
+
   const { data: loans } = await supabase
     .from("loans")
     .select("*")
     .eq("member_id", user.id)
     .order("created_at", { ascending: false });
 
+  const dendaPerHari = settings?.denda_per_hari ?? 0;
+
   const formatTanggalJam = (d: Date) =>
-    d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) +
+    d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" }) +
     ", " +
-    d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) +
+    d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" }) +
     " WIB";
   const formatRupiah = (n: number) => "Rp " + (n ?? 0).toLocaleString("id-ID");
 
@@ -83,7 +92,6 @@ export default async function NotifikasiPage() {
       className: "bg-teal/15 text-teal",
     });
   } else if (vStatus === "belum_verifikasi" && profile?.nik) {
-    // ada data lama tapi status balik ke belum_verifikasi = pernah ditolak
     notifs.push({
       id: "verif-ditolak",
       type: "verifikasi",
@@ -97,36 +105,48 @@ export default async function NotifikasiPage() {
   // ===== Notifikasi pinjaman =====
   for (const loan of loans ?? []) {
     if (loan.status === "disetujui" && loan.tanggal_cair && loan.tempo_hari) {
-      const jatuhTempo = new Date(loan.tanggal_cair);
-      jatuhTempo.setDate(jatuhTempo.getDate() + loan.tempo_hari);
-      const jatuhTempoStr = jatuhTempo.toDateString();
+      const denda = hitungDenda(loan.tanggal_cair, loan.tempo_hari, dendaPerHari);
 
-      if (jatuhTempo < now && jatuhTempoStr !== todayStr) {
+      if (denda.hariTelat > 0) {
         notifs.push({
           id: loan.id + "-overdue",
           type: "overdue",
           title: "Pinjaman sudah lewat jatuh tempo",
-          desc: `${formatRupiah(loan.jumlah_kembali)} — jatuh tempo ${formatTanggalJam(jatuhTempo)}. Segera lakukan pembayaran.`,
+          desc: `Telat ${denda.hariTelat} hari, kena denda ${formatRupiah(denda.totalDenda)}. Total bayar sekarang ${formatRupiah(loan.jumlah_kembali + denda.totalDenda)}.`,
           icon: XCircle,
           className: "bg-red-50 text-red-500",
         });
-      } else if (jatuhTempoStr === todayStr) {
+      } else {
+        const jatuhTempoStr = denda.jatuhTempo.toDateString();
+        if (jatuhTempoStr === todayStr) {
+          notifs.push({
+            id: loan.id + "-today",
+            type: "today",
+            title: "Pinjaman jatuh tempo hari ini",
+            desc: `${formatRupiah(loan.jumlah_kembali)} harus dikembalikan hari ini, ${formatTanggalJam(denda.jatuhTempo)}.`,
+            icon: AlertTriangle,
+            className: "bg-amber/15 text-amber",
+          });
+        } else if (jatuhTempoStr === tomorrowStr) {
+          notifs.push({
+            id: loan.id + "-h1",
+            type: "h1",
+            title: "Pengingat: jatuh tempo besok",
+            desc: `${formatRupiah(loan.jumlah_kembali)} jatuh tempo besok, ${formatTanggalJam(denda.jatuhTempo)}. Siapkan dari sekarang ya.`,
+            icon: Clock,
+            className: "bg-amber/15 text-amber",
+          });
+        }
+      }
+
+      if (!loan.bukti_transfer_url && loan.bukti_ditolak_at) {
         notifs.push({
-          id: loan.id + "-today",
-          type: "today",
-          title: "Pinjaman jatuh tempo hari ini",
-          desc: `${formatRupiah(loan.jumlah_kembali)} harus dikembalikan hari ini, ${formatTanggalJam(jatuhTempo)}.`,
-          icon: AlertTriangle,
-          className: "bg-amber/15 text-amber",
-        });
-      } else if (jatuhTempoStr === tomorrowStr) {
-        notifs.push({
-          id: loan.id + "-h1",
-          type: "h1",
-          title: "Pengingat: jatuh tempo besok",
-          desc: `${formatRupiah(loan.jumlah_kembali)} jatuh tempo besok, ${formatTanggalJam(jatuhTempo)}. Siapkan dari sekarang ya.`,
-          icon: Clock,
-          className: "bg-amber/15 text-amber",
+          id: loan.id + "-bukti-ditolak",
+          type: "bukti_ditolak",
+          title: "Bukti transfer ditolak",
+          desc: (loan.bukti_ditolak_alasan ? loan.bukti_ditolak_alasan + ". " : "") + "Silakan upload ulang bukti transfer di halaman Bayar.",
+          icon: ImageOff,
+          className: "bg-red-50 text-red-500",
         });
       }
     }
@@ -165,9 +185,8 @@ export default async function NotifikasiPage() {
     }
   }
 
-  // Urutkan: paling urgent di atas
   const priority: Record<string, number> = {
-    overdue: 0, today: 1, h1: 2, verifikasi: 3, status: 4,
+    overdue: 0, bukti_ditolak: 1, today: 2, h1: 3, verifikasi: 4, status: 5,
   };
   notifs.sort((a, b) => priority[a.type] - priority[b.type]);
 

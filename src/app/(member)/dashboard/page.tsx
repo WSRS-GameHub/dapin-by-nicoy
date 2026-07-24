@@ -14,8 +14,10 @@ import {
   XCircle,
   Send,
   Lock,
+  AlertTriangle,
 } from "lucide-react";
 import BottomNav from "@/components/member/BottomNav";
+import { hitungDenda } from "@/lib/HitungDenda";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -43,6 +45,12 @@ export default async function DashboardPage() {
     .eq("id", user.id)
     .single();
 
+  const { data: settings } = await supabase
+    .from("loan_settings")
+    .select("denda_per_hari")
+    .eq("id", 1)
+    .single();
+
   const sudahTerverifikasi = profile?.verifikasi_status === "selesai";
 
   const { data: activeLoan } = sudahTerverifikasi
@@ -65,11 +73,14 @@ export default async function DashboardPage() {
 
   const limit = profile?.limit_khusus ?? 0;
   const tempoHari = profile?.tempo_khusus_hari ?? 5;
+  const dendaPerHari = settings?.denda_per_hari ?? 0;
   const sisaLimit = activeLoan ? Math.max(0, limit - activeLoan.nominal) : limit;
 
   let hariBerjalan = 0;
   let sisaHari = tempoHari;
   let adaPengingat = false;
+  let hariTelat = 0;
+  let totalDenda = 0;
 
   if (activeLoan?.tanggal_cair) {
     const cair = new Date(activeLoan.tanggal_cair);
@@ -80,17 +91,22 @@ export default async function DashboardPage() {
     );
     sisaHari = Math.max(0, tempoHari - hariBerjalan);
 
-    const jatuhTempo = new Date(cair);
-    jatuhTempo.setDate(jatuhTempo.getDate() + tempoHari);
+    const denda = hitungDenda(activeLoan.tanggal_cair, tempoHari, dendaPerHari);
+    hariTelat = denda.hariTelat;
+    totalDenda = denda.totalDenda;
+
     const todayStr = now.toDateString();
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const jatuhTempoStr = jatuhTempo.toDateString();
+    const jatuhTempoStr = denda.jatuhTempo.toDateString();
 
-    if (jatuhTempoStr === tomorrow.toDateString() || jatuhTempoStr === todayStr || jatuhTempo < now) {
+    if (jatuhTempoStr === tomorrow.toDateString() || jatuhTempoStr === todayStr || hariTelat > 0) {
       adaPengingat = true;
     }
   }
+
+  const bukliDitolak = !!(activeLoan && !activeLoan.bukti_transfer_url && activeLoan.bukti_ditolak_at);
+  if (bukliDitolak) adaPengingat = true;
 
   const formatRupiah = (n: number) => "Rp " + n.toLocaleString("id-ID");
 
@@ -175,9 +191,15 @@ export default async function DashboardPage() {
               </span>
               <span>
                 {activeLoan ? (
-                  <>
-                    Sisa <b className="text-white">{sisaHari} hari lagi</b>
-                  </>
+                  hariTelat > 0 ? (
+                    <>
+                      Telat <b className="text-amber">{hariTelat} hari</b>
+                    </>
+                  ) : (
+                    <>
+                      Sisa <b className="text-white">{sisaHari} hari lagi</b>
+                    </>
+                  )
                 ) : (
                   <>
                     Limit maks <b className="text-white">{formatRupiah(limit)}</b>
@@ -191,6 +213,27 @@ export default async function DashboardPage() {
               <span className="text-sm font-mono font-bold text-white">{formatRupiah(sisaLimit)}</span>
             </div>
 
+            {activeLoan && hariTelat > 0 && (
+              <div className="mt-3 flex items-center gap-2.5 bg-red-500/15 rounded-xl px-3.5 py-3 relative z-10">
+                <AlertTriangle size={16} className="text-red-300 flex-shrink-0" />
+                <div className="text-[11px] text-red-200 leading-relaxed">
+                  Telat {hariTelat} hari, kena denda{" "}
+                  <b className="text-white">{formatRupiah(totalDenda)}</b> — total bayar jadi{" "}
+                  <b className="text-white">{formatRupiah(activeLoan.jumlah_kembali + totalDenda)}</b>
+                </div>
+              </div>
+            )}
+
+            {bukliDitolak && (
+              <div className="mt-3 flex items-start gap-2.5 bg-red-500/15 rounded-xl px-3.5 py-3 relative z-10">
+                <XCircle size={16} className="text-red-300 flex-shrink-0 mt-0.5" />
+                <div className="text-[11px] text-red-200 leading-relaxed">
+                  Bukti transfer kamu ditolak admin
+                  {activeLoan.bukti_ditolak_alasan ? ": " + activeLoan.bukti_ditolak_alasan : "."} Silakan upload ulang.
+                </div>
+              </div>
+            )}
+
             {activeLoan ? (
               activeLoan.bukti_transfer_url ? (
                 <div className="mt-4 flex items-center justify-center gap-2 bg-teal/15 text-[#5FE1D3] text-xs font-semibold rounded-xl py-3 relative z-10">
@@ -203,7 +246,7 @@ export default async function DashboardPage() {
                   className="mt-4 flex items-center justify-center gap-2 bg-blue text-white text-sm font-semibold rounded-xl py-3 relative z-10 hover:bg-blue-dark transition-colors"
                 >
                   <Send size={15} />
-                  Bayar Sekarang
+                  {bukliDitolak ? "Upload Ulang Bukti" : "Bayar Sekarang"}
                 </Link>
               )
             ) : (

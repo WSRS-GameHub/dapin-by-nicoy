@@ -69,6 +69,26 @@ export async function tandaiLunas(loanId: string) {
   revalidatePath("/admin/pinjaman");
 }
 
+export async function tolakBuktiTransfer(formData: FormData) {
+  const loanId = formData.get("loanId") as string;
+  const alasan = formData.get("alasan") as string;
+
+  const supabase = await createClient();
+  await supabase
+    .from("loans")
+    .update({
+      bukti_transfer_url: null,
+      bukti_transfer_at: null,
+      bukti_ditolak_at: new Date().toISOString(),
+      bukti_ditolak_alasan: alasan || null,
+    })
+    .eq("id", loanId);
+
+  revalidatePath("/admin/pinjaman");
+  revalidatePath("/dashboard");
+  revalidatePath("/riwayat");
+}
+
 // ===== Tarif Pinjaman =====
 
 export async function tambahTarif(formData: FormData) {
@@ -148,6 +168,15 @@ export async function updateProfilAdmin(formData: FormData) {
   if (!user) return;
 
   await supabase.from("profiles").update({ nama, no_telpon }).eq("id", user.id);
+
+  revalidatePath("/admin/pengaturan");
+}
+
+export async function updateDendaPerHari(formData: FormData) {
+  const denda_per_hari = Number(formData.get("denda_per_hari"));
+
+  const supabase = await createClient();
+  await supabase.from("loan_settings").update({ denda_per_hari }).eq("id", 1);
 
   revalidatePath("/admin/pengaturan");
 }

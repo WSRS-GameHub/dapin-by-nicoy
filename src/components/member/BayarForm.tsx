@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { ArrowLeft, Upload, Send, CheckCircle2, Home, History } from "lucide-react";
+import { ArrowLeft, Upload, Send, CheckCircle2, Home, History, AlertTriangle, XCircle } from "lucide-react";
 import Link from "next/link";
 import BankLogo from "@/components/ui/BankLogo";
 import Toast from "@/components/ui/Toast";
@@ -19,12 +19,15 @@ type Props = {
   loanId: string;
   userId: string;
   jumlahKembali: number;
+  hariTelat: number;
+  totalDenda: number;
   rekeningList: Rekening[];
   buktiSudahAda: boolean;
+  buktiDitolakAlasan: string | null;
 };
 
 export default function BayarForm({
-  loanId, userId, jumlahKembali, rekeningList, buktiSudahAda,
+  loanId, userId, jumlahKembali, hariTelat, totalDenda, rekeningList, buktiSudahAda, buktiDitolakAlasan,
 }: Props) {
   const router = useRouter();
   const supabase = createClient();
@@ -35,6 +38,7 @@ export default function BayarForm({
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   const formatRupiah = (n: number) => "Rp " + n.toLocaleString("id-ID");
+  const totalBayar = jumlahKembali + totalDenda;
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -93,7 +97,6 @@ export default function BayarForm({
     router.refresh();
   }
 
-  // Tampilan sukses — muncul kalau baru aja berhasil kirim ATAU sebelumnya udah pernah kirim
   if (berhasilKirim || buktiSudahAda) {
     return (
       <div className="min-h-screen flex flex-col max-w-md mx-auto bg-[#F3F6FE] px-5 pt-6 pb-10">
@@ -139,11 +142,42 @@ export default function BayarForm({
       </button>
 
       <h1 className="font-display font-bold text-xl text-navy">Bayar Pinjaman</h1>
-      <p className="text-sm text-slate mt-1 mb-6">
-        Transfer <b className="text-navy font-mono">{formatRupiah(jumlahKembali)}</b> ke salah satu rekening di bawah, lalu kirim bukti transfernya.
-      </p>
 
-      <p className="text-xs font-bold text-slate uppercase tracking-wide mb-2">Pilih Rekening Tujuan</p>
+      {buktiDitolakAlasan !== null && (
+        <div className="flex items-start gap-2.5 bg-red-50 text-red-600 rounded-xl px-4 py-3 mt-4 text-[11.5px] leading-relaxed">
+          <XCircle size={15} className="flex-shrink-0 mt-0.5" />
+          <div>
+            Bukti transfer sebelumnya <b>ditolak admin</b>
+            {buktiDitolakAlasan ? ": " + buktiDitolakAlasan : "."} Silakan upload bukti baru yang benar.
+          </div>
+        </div>
+      )}
+
+      <div className="bg-white rounded-2xl shadow-sm p-4 mt-4 mb-2">
+        <div className="flex justify-between text-sm text-slate mb-1.5">
+          <span>Jumlah Kembali</span>
+          <span className="font-mono text-navy">{formatRupiah(jumlahKembali)}</span>
+        </div>
+        {hariTelat > 0 && (
+          <div className="flex justify-between text-sm text-red-500 mb-1.5">
+            <span>Denda ({hariTelat} hari telat)</span>
+            <span className="font-mono">{formatRupiah(totalDenda)}</span>
+          </div>
+        )}
+        <div className="flex justify-between text-sm font-bold text-navy pt-2 border-t border-sky-line mt-1">
+          <span>Total Harus Dibayar</span>
+          <span className="font-mono">{formatRupiah(totalBayar)}</span>
+        </div>
+      </div>
+
+      {hariTelat > 0 && (
+        <div className="flex items-start gap-2.5 bg-red-50 text-red-600 rounded-xl px-4 py-3 mb-4 text-[11.5px] leading-relaxed">
+          <AlertTriangle size={15} className="flex-shrink-0 mt-0.5" />
+          Pembayaran kamu sudah telat {hariTelat} hari dari jatuh tempo, jadi total di atas sudah termasuk denda keterlambatan.
+        </div>
+      )}
+
+      <p className="text-xs font-bold text-slate uppercase tracking-wide mb-2 mt-2">Pilih Rekening Tujuan</p>
       <div className="flex flex-col gap-2 mb-6">
         {rekeningList.length > 0 ? (
           rekeningList.map((r) => (
